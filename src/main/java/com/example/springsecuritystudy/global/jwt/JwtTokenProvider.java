@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -15,6 +17,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import com.example.springsecuritystudy.global.property.JwtProperties;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -23,19 +27,24 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
-	private final Key key;
-	private static final long ACCESS_TOKEN_EXPIRE = 86400000;
-	private static final long REFRESH_TOKEN_EXPIRE = 86400000;
+	private final SecretKey secretKey;
 
-	public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
-		byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-		this.key = Keys.hmacShaKeyFor(keyBytes);
+	private final String issuer;
+	private final long ACCESS_TOKEN_EXPIRE;
+	private final long REFRESH_TOKEN_EXPIRE;
+
+	public JwtTokenProvider(JwtProperties properties) {
+		this.issuer = properties.getIssuer();
+		this.ACCESS_TOKEN_EXPIRE = properties.getAccessTokenExpireSeconds();
+		this.REFRESH_TOKEN_EXPIRE = properties.getRefreshTokenExpireSeconds();
+		this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.getSecretKey()));
 	}
 
 	// 유저 정보를 가지고 AccessToken, RefreshToken 을 생성
@@ -44,16 +53,12 @@ public class JwtTokenProvider {
 		String authorities = authentication.getAuthorities().stream()
 				.map(GrantedAuthority::getAuthority)
 				.collect(Collectors.joining(","));
-
 		Date now = new Date();
-
-		String accessToken = getAccessToken(authentication, authorities, now);
-		String refreshToken = getRefreshToken(now);
 
 		return TokenInfo.builder()
 				.grantType("Bearer")
-				.accessToken(accessToken)
-				.refreshToken(refreshToken)
+				.accessToken(getAccessToken(authentication, authorities, now))
+				.refreshToken(getRefreshToken(now))
 				.build();
 	}
 
@@ -61,6 +66,7 @@ public class JwtTokenProvider {
 	public Authentication getAuthentication(String accessToken) {
 		// 토큰 복호화
 		Claims claims = parseClaims(accessToken);
+		// log.info("claims subject id : {}", Long.parseLong(claims.getSubject()));
 
 		if (claims.get("auth") == null)
 			throw new RuntimeException("권한 정보가 없는 토큰입니다.");
@@ -73,14 +79,13 @@ public class JwtTokenProvider {
 
 		// UserDetail 객체를 만들어서 Authentication 객체 리턴
 		UserDetails principal = new User(claims.getSubject(), "", authorities);
-
 		return new UsernamePasswordAuthenticationToken(principal, "", authorities);
 	}
 
 	// 토큰 정보를 검증하는 메소드
 	public boolean validateToken(String token) {
 		try {
-			Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+			Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
 			return true;
 		} catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
 			log.info("Invalid JWT Token", e);
@@ -101,7 +106,7 @@ public class JwtTokenProvider {
 				.setSubject(authentication.getName())
 				.claim("auth", authorities)
 				.setExpiration(expireAt)
-				.signWith(key, SignatureAlgorithm.HS256)
+				.signWith(secretKey, SignatureAlgorithm.HS256)
 				.compact();
 	}
 
@@ -110,7 +115,7 @@ public class JwtTokenProvider {
 
 		return Jwts.builder()
 				.setExpiration(expireAt)
-				.signWith(key, SignatureAlgorithm.HS256)
+				.signWith(secretKey, SignatureAlgorithm.HS256)
 				.compact();
 	}
 
@@ -118,7 +123,7 @@ public class JwtTokenProvider {
 
 		try {
 			return Jwts.parserBuilder()
-					.setSigningKey(key)
+					.setSigningKey(secretKey)
 					.build()
 					.parseClaimsJws(accessToken)
 					.getBody();

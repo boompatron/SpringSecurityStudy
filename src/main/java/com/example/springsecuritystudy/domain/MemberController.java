@@ -3,8 +3,6 @@ package com.example.springsecuritystudy.domain;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,11 +23,18 @@ public class MemberController {
 	private final MemberService memberService;
 	private final CookieProvider cookieProvider;
 
+	@PostMapping("/signUp")
+	public ResponseEntity<Long> signUp(
+			@RequestBody MemberDto dto
+	) {
+		return ResponseEntity.ok(memberService.registerMember(dto));
+	}
+
 	@PostMapping("/login")
-	public ResponseEntity<TokenInfo> login(@RequestBody MemberLoginRequest request){
-		String memberId = request.memberId();
+	public ResponseEntity<TokenInfo> login(@RequestBody MemberDto request){
+		String email = request.email();
 		String password = request.password();
-		TokenInfo tokenInfo = memberService.login(memberId, password);
+		TokenInfo tokenInfo = memberService.login(email, password);
 
 		ResponseCookie responseCookie = cookieProvider.generateTokenCookie(tokenInfo.getRefreshToken());
 

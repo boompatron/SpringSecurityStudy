@@ -36,7 +36,8 @@ public class SecurityConfig {
 				// 각 사이트에 대해 권한을 조정한다
 				.authorizeRequests()
 				// 이 사이트는 어떤 요청이 와도 그냥 들어와도 된다
-				.antMatchers("/members/login").permitAll()
+				.antMatchers("/members/login", "/members/signUp")
+				.permitAll()
 				// 이 사이트는 USER 권한이 있어야 한다
 				.antMatchers("/members/test").hasRole("USER")
 				// 이 외 모든 요청은 인증을 필요로 한다
@@ -48,10 +49,9 @@ public class SecurityConfig {
 		return http.build();
 	}
 
-	// 여기서는 BCrypt encoder 를 사용하겠다
 	@Bean
 	public PasswordEncoder passwordEncoder(){
-		return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+		return new BCryptPasswordEncoder();
 	}
 
 }

@@ -1,7 +1,7 @@
 package com.example.springsecuritystudy.domain;
 
-public record MemberLoginRequest(
-		String memberId,
+public record MemberDto(
+		String email,
 		String password
 ) {
 }
