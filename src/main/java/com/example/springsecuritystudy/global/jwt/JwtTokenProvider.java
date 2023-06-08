@@ -1,6 +1,5 @@
 package com.example.springsecuritystudy.global.jwt;
 
-import java.security.Key;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -8,8 +7,8 @@ import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,7 +26,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -39,16 +37,22 @@ public class JwtTokenProvider {
 	private final String issuer;
 	private final long ACCESS_TOKEN_EXPIRE;
 	private final long REFRESH_TOKEN_EXPIRE;
+	private final AuthenticationManagerBuilder authenticationManagerBuilder;
 
-	public JwtTokenProvider(JwtProperties properties) {
+	public JwtTokenProvider(JwtProperties properties, AuthenticationManagerBuilder amb) {
 		this.issuer = properties.getIssuer();
 		this.ACCESS_TOKEN_EXPIRE = properties.getAccessTokenExpireSeconds();
 		this.REFRESH_TOKEN_EXPIRE = properties.getRefreshTokenExpireSeconds();
 		this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.getSecretKey()));
+		this.authenticationManagerBuilder = amb;
 	}
 
 	// 유저 정보를 가지고 AccessToken, RefreshToken 을 생성
-	public TokenInfo generateToken(Authentication authentication) {
+	public TokenInfo generateToken(long memberId, String enteredPassword) {
+		UsernamePasswordAuthenticationToken authenticationToken =
+				new UsernamePasswordAuthenticationToken(String.valueOf(memberId), enteredPassword);
+		Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+
 		// 권한 가져오기
 		String authorities = authentication.getAuthorities().stream()
 				.map(GrantedAuthority::getAuthority)

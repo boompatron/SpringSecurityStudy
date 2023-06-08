@@ -1,12 +1,12 @@
 package com.example.springsecuritystudy.domain;
 
+import static com.example.springsecuritystudy.global.jwt.JwtUtil.getMemberId;
+
 import java.util.List;
 
 import javax.persistence.EntityNotFoundException;
 
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +40,11 @@ public class MemberService {
 		return member.getId();
 	}
 
+	@Transactional(readOnly = true)
+	public Long getCurMemberId() {
+		return getMemberId();
+	}
+
 	// @Transactional(readOnly = true)
 	// public TokenInfo login(String email, String password) {
 	// 	// 1. Login ID/PW 를 기반으로 Authentication 객체 생성
@@ -61,8 +66,7 @@ public class MemberService {
 	public TokenInfo login(String email, String enteredPassword) {
 		Member member = memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException(""));
 		if (isPasswordMatches(member, enteredPassword)) {
-			log.info("password matches");
-			return generateToken(member, enteredPassword);
+			return generateToken(member.getId(), enteredPassword);
 		}
 
 		return null;
@@ -72,11 +76,8 @@ public class MemberService {
 		return member.isPasswordMatches(enteredPassword);
 	}
 
-	private TokenInfo generateToken(Member member, String enteredPassword){
-		UsernamePasswordAuthenticationToken authenticationToken =
-				new UsernamePasswordAuthenticationToken(String.valueOf(member.getId()), enteredPassword);
-		Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-		return jwtTokenProvider.generateToken(authentication);
+	private TokenInfo generateToken(Long memberId, String enteredPassword){
+		return jwtTokenProvider.generateToken(memberId, enteredPassword);
 	}
 
 
