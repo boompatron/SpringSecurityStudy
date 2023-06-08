@@ -1,0 +1,9 @@
+jwt:
+  secret: VlwEyVBsYt9V7zq57TejMnVUyzblYcfPQye08f7MGVA9XkHa
+
+
+#  header: Authorization
+#  issuer: ECM-server
+#  secret-key: c2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQtc2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQK
+#  access-token-expire-seconds: 1600000    #10minute
+#  refresh-token-expire-seconds: 604800000 #7days
