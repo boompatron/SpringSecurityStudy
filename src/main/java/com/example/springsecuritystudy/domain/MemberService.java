@@ -72,11 +72,9 @@ public class MemberService {
 	// 애초에 로직이 잘못된 건지...
 	// UserDetail 을 사용하고 싶어서 사용은 하는데... 근본적으로 accessToken -> memberId 만으로도
 	// authentication 을 통해서 AccessToken 을 발급하는 방법이 존재하는지 궁금!!
-
 	@Transactional
-	public TokenInfo reissue(ReissueRequest request){
-		jwtTokenProvider.validateToken(request.refreshToken());
-		String memberId = jwtTokenProvider.getMemberIdFromToken(request.accessToken());
+	public TokenInfo reissue(ReissueRequest request, String refreshToken){
+		jwtTokenProvider.validateToken(refreshToken);
 		return jwtTokenProvider.generateToken(request.accessToken());
 	}
 
@@ -89,20 +87,4 @@ public class MemberService {
 		return jwtTokenProvider.generateToken(String.valueOf(memberId), enteredPassword);
 	}
 
-	// @Transactional(readOnly = true)
-	// public TokenInfo login(String email, String password) {
-	// 	// 1. Login ID/PW 를 기반으로 Authentication 객체 생성
-	// 	// 이때 authentication 는 인증 여부를 확인하는 authenticated 값이 false
-	// 	UsernamePasswordAuthenticationToken authenticationToken =
-	// 			new UsernamePasswordAuthenticationToken(email, new Password(password).getPassword());
-	//
-	// 	// 2. 실제 검증 (사용자 비밀번호 체크)이 이루어지는 부분
-	// 	// authenticate 매서드가 실행될 때 CustomUserDetailsService 에서 만든 loadUserByUsername 메서드가 실행
-	// 	Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-	//
-	// 	// 3. 인증 정보를 기반으로 JWT
-	// 	TokenInfo tokenInfo = jwtTokenProvider.generateToken(authentication);
-	//
-	// 	return tokenInfo;
-	// }
 }

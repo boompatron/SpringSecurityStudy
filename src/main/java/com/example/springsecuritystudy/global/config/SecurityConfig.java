@@ -26,6 +26,18 @@ public class SecurityConfig {
 
 	private final JwtTokenProvider jwtTokenProvider;
 
+	private final String[] ignoringPath = {"/members/login", "/members/signUp" };
+	private final String[] verifyingPath = {"/members/test", "/members/reissue" };
+
+	private static final String USER = "USER";
+	private static final String ADMIN = "ADMIN";
+
+	// @Bean
+	// public WebSecurityCustomizer webSecurityCustomizer() {
+	// 	return (web) -> web.ignoring()
+	// 			.antMatchers(ignoringPath);
+	// }
+
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
@@ -43,10 +55,10 @@ public class SecurityConfig {
 				// 각 사이트에 대해 권한을 조정한다
 				.authorizeRequests()
 				// 이 사이트는 어떤 요청이 와도 그냥 들어와도 된다
-				.antMatchers("/members/login", "/members/signUp", "/members/reissue")
+				.antMatchers(ignoringPath)
 				.permitAll()
 				// 이 사이트는 USER 권한이 있어야 한다
-				.antMatchers("/members/test").hasRole("USER")
+				.antMatchers(verifyingPath).hasRole(USER)
 				// 이 외 모든 요청은 인증을 필요로 한다
 				.anyRequest().authenticated()
 				.and()

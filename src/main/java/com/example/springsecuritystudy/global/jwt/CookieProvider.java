@@ -23,11 +23,10 @@ public class CookieProvider {
 				.build();
 	}
 
-
+	// TODO SSL 인증서 및 Nginx 도입 후 .secure(true) 옵션 활성화하기
 	private ResponseCookie.ResponseCookieBuilder generateTokenCookieBuilder(String refreshToken){
 		return ResponseCookie.from(REFRESH_TOKEN, refreshToken)
 				.httpOnly(true)
-				.secure(true)
 				.path("/")
 				.sameSite(Cookie.SameSite.NONE.attributeValue());
 	}

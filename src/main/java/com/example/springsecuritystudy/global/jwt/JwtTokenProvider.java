@@ -51,46 +51,21 @@ public class JwtTokenProvider {
 
 	// 유저 정보를 가지고 AccessToken, RefreshToken 을 생성
 	public TokenInfo generateToken(String memberId, String enteredPassword) {
-		log.info("generate token entered");
 		UsernamePasswordAuthenticationToken authenticationToken =
 				new UsernamePasswordAuthenticationToken(String.valueOf(memberId), enteredPassword);
 
-		log.info("memberId : {}, password, {}", memberId, enteredPassword);
-
-		Object o = authenticationManagerBuilder.getObject();
-		log.info("authenticationManagerBuilder : {}", o.getClass());
-		log.info("으아앙아 {}", authenticationToken.toString());
-
 		Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-
 		// 권한 가져오기
-		log.info("2, authentication : {}", authentication.toString());
-		String authorities = authentication.getAuthorities().stream()
-				.map(GrantedAuthority::getAuthority)
-				.collect(Collectors.joining(","));
-
-		log.info("auths : {}", authorities);
-		Date now = new Date();
-
-		return TokenInfo.builder()
-				.grantType("Bearer")
-				.accessToken(getAccessToken(memberId, authorities, now))
-				.refreshToken(getRefreshToken(now))
-				.build();
+		String authorities = getAuthorities(authentication);
+		return getToken(memberId, authorities);
 	}
 
+	// Access Token 을 이용해서 토큰을 발급하는 메소드
+	// Reissue 할 때 사용함
 	public TokenInfo generateToken(String accessToken){
 		Authentication authentication = getAuthentication(accessToken);
-		String authorities = authentication.getAuthorities().stream()
-				.map(GrantedAuthority::getAuthority)
-				.collect(Collectors.joining(","));
-
-		Date now = new Date();
-		return TokenInfo.builder()
-				.grantType("Bearer")
-				.accessToken(getAccessToken(authentication.getName(), authorities, now))
-				.refreshToken(getRefreshToken(now))
-				.build();
+		String authorities = getAuthorities(authentication);
+		return getToken(authentication.getName(), authorities);
 	}
 
 	// JWT 을 복호화해서 안에 있는 정보를 꺼내느 메소드
@@ -156,7 +131,6 @@ public class JwtTokenProvider {
 	}
 
 	private Claims parseClaims(String accessToken) {
-
 		try {
 			return Jwts.parserBuilder()
 					.setSigningKey(secretKey)
@@ -166,5 +140,20 @@ public class JwtTokenProvider {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims();
 		}
+	}
+
+	private String getAuthorities(Authentication authentication) {
+		return  authentication.getAuthorities().stream()
+				.map(GrantedAuthority::getAuthority)
+				.collect(Collectors.joining(","));
+	}
+
+	private TokenInfo getToken(String username, String authorities){
+		Date now = new Date();
+		return TokenInfo.builder()
+				.grantType("Bearer")
+				.accessToken(getAccessToken(username, authorities, now))
+				.refreshToken(getRefreshToken(now))
+				.build();
 	}
 }

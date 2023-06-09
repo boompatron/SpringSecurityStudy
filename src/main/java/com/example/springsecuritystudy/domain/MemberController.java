@@ -67,11 +67,12 @@ public class MemberController {
 
 	@PostMapping("/reissue")
 	public ResponseEntity<TokenInfo> reissue(
-			// @CookieValue String refreshToken,
+			@CookieValue String refreshToken,
 			@RequestBody ReissueRequest request
 	){
-
-		TokenInfo tokenInfo = memberService.reissue(request);
+		log.info("AT: {}", request.accessToken());
+		log.info("RT: {}", refreshToken);
+		TokenInfo tokenInfo = memberService.reissue(request, refreshToken);
 		ResponseCookie responseCookie = cookieProvider.generateTokenCookie(tokenInfo.getRefreshToken());
 
 		return ResponseEntity.ok()
