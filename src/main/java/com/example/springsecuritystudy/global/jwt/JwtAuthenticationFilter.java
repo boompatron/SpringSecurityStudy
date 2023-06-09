@@ -1,5 +1,8 @@
 package com.example.springsecuritystudy.global.jwt;
 
+import static com.example.springsecuritystudy.global.jwt.JWT_KEYWORD.BEARER;
+import static com.example.springsecuritystudy.global.jwt.JWT_KEYWORD.AUTHORIZATION;
+
 import java.io.IOException;
 
 import javax.servlet.FilterChain;
@@ -66,8 +69,8 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
 	// }
 
 	private String getTokenFromHeader(HttpServletRequest request) {
-		String bearerToken = request.getHeader("Authorization");
-		if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer")) {
+		String bearerToken = request.getHeader(AUTHORIZATION.getWord());
+		if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER.getWord())) {
 			return bearerToken.substring(7);
 		}
 		return null;

@@ -1,5 +1,7 @@
 package com.example.springsecuritystudy.global.jwt;
 
+import static com.example.springsecuritystudy.global.jwt.JWT_KEYWORD.BEARER;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -151,7 +153,7 @@ public class JwtTokenProvider {
 	private TokenInfo getToken(String username, String authorities){
 		Date now = new Date();
 		return TokenInfo.builder()
-				.grantType("Bearer")
+				.grantType(BEARER.getWord())
 				.accessToken(getAccessToken(username, authorities, now))
 				.refreshToken(getRefreshToken(now))
 				.build();

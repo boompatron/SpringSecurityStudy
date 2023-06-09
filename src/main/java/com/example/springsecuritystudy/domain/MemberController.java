@@ -39,7 +39,7 @@ public class MemberController {
 		String password = request.password();
 		TokenInfo tokenInfo = memberService.login(email, password);
 
-		ResponseCookie responseCookie = cookieProvider.generateTokenCookie(tokenInfo.getRefreshToken());
+		ResponseCookie responseCookie = cookieProvider.getRefreshTokenResponseCookie(tokenInfo.getRefreshToken());
 
 		return ResponseEntity.ok()
 				.header(HttpHeaders.SET_COOKIE, responseCookie.toString())
@@ -59,7 +59,7 @@ public class MemberController {
 	@DeleteMapping("/logout")
 	public ResponseEntity<Void> logout(){
 		memberService.logout();
-		ResponseCookie responseCookie = cookieProvider.generateResetTokenCookie();
+		ResponseCookie responseCookie = cookieProvider.generateResetResponseCookie();
 		return ResponseEntity.ok()
 				.header(HttpHeaders.SET_COOKIE, responseCookie.toString())
 				.build();
@@ -73,7 +73,7 @@ public class MemberController {
 		log.info("AT: {}", request.accessToken());
 		log.info("RT: {}", refreshToken);
 		TokenInfo tokenInfo = memberService.reissue(request, refreshToken);
-		ResponseCookie responseCookie = cookieProvider.generateTokenCookie(tokenInfo.getRefreshToken());
+		ResponseCookie responseCookie = cookieProvider.getRefreshTokenResponseCookie(tokenInfo.getRefreshToken());
 
 		return ResponseEntity.ok()
 				.header(HttpHeaders.SET_COOKIE, responseCookie.toString())

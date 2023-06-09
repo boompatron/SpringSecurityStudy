@@ -12,8 +12,6 @@ public class JwtUtil {
 
 	public static long getMemberId(){
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		log.info("authentication : {}", authentication);
-		log.info("authen name : {}", authentication.getName());
 		return Long.parseLong(authentication.getName());
 	}
 
