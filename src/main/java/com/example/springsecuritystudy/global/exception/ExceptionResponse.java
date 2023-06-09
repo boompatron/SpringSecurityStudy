@@ -9,17 +9,17 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class ExceptionMessage {
+public class ExceptionResponse {
     private final LocalDateTime timestamp = LocalDateTime.now();
     private final int status;
     private final String error;
     private final String code;
     private final String message;
 
-    public static ResponseEntity<ExceptionMessage> toResponseEntity(ExceptionCode exceptionCode) {
+    public static ResponseEntity<ExceptionResponse> toResponseEntity(ExceptionCode exceptionCode) {
         return ResponseEntity
                 .status(exceptionCode.getHttpStatus())
-                .body(ExceptionMessage.builder()
+                .body(ExceptionResponse.builder()
                         .status(exceptionCode.getHttpStatus().value())
                         .error(exceptionCode.getHttpStatus().name())
                         .code(exceptionCode.name())
