@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+	// TODO 경로 설정 및 추가 수정
 
 	private final JwtTokenProvider jwtTokenProvider;
 
@@ -29,14 +30,20 @@ public class SecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 				// rest api 이므로 basic auth, csrf 보안을 안쓰겠다.
-				.httpBasic().disable().csrf().disable()
+				.csrf().disable()
+				.httpBasic().disable()
+				.formLogin().disable()
+				.rememberMe().disable()
+				.logout().disable()
+				.requestCache().disable()
+				.headers().disable()
 				// jwt 를 사용하므로 session 은 사용하지 않겠다
 				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				.and()
 				// 각 사이트에 대해 권한을 조정한다
 				.authorizeRequests()
 				// 이 사이트는 어떤 요청이 와도 그냥 들어와도 된다
-				.antMatchers("/members/login", "/members/signUp")
+				.antMatchers("/members/login", "/members/signUp", "/members/reissue")
 				.permitAll()
 				// 이 사이트는 USER 권한이 있어야 한다
 				.antMatchers("/members/test").hasRole("USER")

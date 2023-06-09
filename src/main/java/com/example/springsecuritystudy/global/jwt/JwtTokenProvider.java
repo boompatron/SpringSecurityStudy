@@ -32,6 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class JwtTokenProvider {
 
+	// TODO 좀더 최적화하기
+
 	private final SecretKey secretKey;
 
 	private final String issuer;
@@ -48,20 +50,45 @@ public class JwtTokenProvider {
 	}
 
 	// 유저 정보를 가지고 AccessToken, RefreshToken 을 생성
-	public TokenInfo generateToken(long memberId, String enteredPassword) {
+	public TokenInfo generateToken(String memberId, String enteredPassword) {
+		log.info("generate token entered");
 		UsernamePasswordAuthenticationToken authenticationToken =
 				new UsernamePasswordAuthenticationToken(String.valueOf(memberId), enteredPassword);
+
+		log.info("memberId : {}, password, {}", memberId, enteredPassword);
+
+		Object o = authenticationManagerBuilder.getObject();
+		log.info("authenticationManagerBuilder : {}", o.getClass());
+		log.info("으아앙아 {}", authenticationToken.toString());
+
 		Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
 
 		// 권한 가져오기
+		log.info("2, authentication : {}", authentication.toString());
 		String authorities = authentication.getAuthorities().stream()
 				.map(GrantedAuthority::getAuthority)
 				.collect(Collectors.joining(","));
+
+		log.info("auths : {}", authorities);
 		Date now = new Date();
 
 		return TokenInfo.builder()
 				.grantType("Bearer")
-				.accessToken(getAccessToken(authentication, authorities, now))
+				.accessToken(getAccessToken(memberId, authorities, now))
+				.refreshToken(getRefreshToken(now))
+				.build();
+	}
+
+	public TokenInfo generateToken(String accessToken){
+		Authentication authentication = getAuthentication(accessToken);
+		String authorities = authentication.getAuthorities().stream()
+				.map(GrantedAuthority::getAuthority)
+				.collect(Collectors.joining(","));
+
+		Date now = new Date();
+		return TokenInfo.builder()
+				.grantType("Bearer")
+				.accessToken(getAccessToken(authentication.getName(), authorities, now))
 				.refreshToken(getRefreshToken(now))
 				.build();
 	}
@@ -70,7 +97,6 @@ public class JwtTokenProvider {
 	public Authentication getAuthentication(String accessToken) {
 		// 토큰 복호화
 		Claims claims = parseClaims(accessToken);
-		// log.info("claims subject id : {}", Long.parseLong(claims.getSubject()));
 
 		if (claims.get("auth") == null)
 			throw new RuntimeException("권한 정보가 없는 토큰입니다.");
@@ -86,11 +112,12 @@ public class JwtTokenProvider {
 		return new UsernamePasswordAuthenticationToken(principal, "", authorities);
 	}
 
+	// Reissue 할
+
 	// 토큰 정보를 검증하는 메소드
-	public boolean validateToken(String token) {
+	public void validateToken(String token) {
 		try {
 			Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
-			return true;
 		} catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
 			log.info("Invalid JWT Token", e);
 		} catch (ExpiredJwtException e) {
@@ -100,16 +127,21 @@ public class JwtTokenProvider {
 		} catch (IllegalArgumentException e) {
 			log.info("JWT claims string is empty.", e);
 		}
-		return false;
 	}
 
-	private String getAccessToken(Authentication authentication, String authorities, Date now) {
+	public String getMemberIdFromToken(String token) {
+		return parseClaims(token).getSubject();
+	}
+
+	private String getAccessToken(String memberId, String authorities, Date now) {
 		Date expireAt = new Date(now.getTime() + ACCESS_TOKEN_EXPIRE);
 
 		return Jwts.builder()
-				.setSubject(authentication.getName())
+				.setIssuer(issuer)
+				.setSubject(memberId)
 				.claim("auth", authorities)
 				.setExpiration(expireAt)
+				.setIssuedAt(now)
 				.signWith(secretKey, SignatureAlgorithm.HS256)
 				.compact();
 	}

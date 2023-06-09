@@ -3,6 +3,8 @@ package com.example.springsecuritystudy.domain;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,11 +56,26 @@ public class MemberController {
 		return ResponseEntity.ok(memberService.getCurMemberId());
 	}
 
-	// @PostMapping("/reissue")
-	// public ResponseEntity<TokenInfo> reissue(
-	// 		@CookieValue String refreshToken,
-	// 		String accessToken
-	// ){
-	//
-	// }
+	@DeleteMapping("/logout")
+	public ResponseEntity<Void> logout(){
+		memberService.logout();
+		ResponseCookie responseCookie = cookieProvider.generateResetTokenCookie();
+		return ResponseEntity.ok()
+				.header(HttpHeaders.SET_COOKIE, responseCookie.toString())
+				.build();
+	}
+
+	@PostMapping("/reissue")
+	public ResponseEntity<TokenInfo> reissue(
+			// @CookieValue String refreshToken,
+			@RequestBody ReissueRequest request
+	){
+
+		TokenInfo tokenInfo = memberService.reissue(request);
+		ResponseCookie responseCookie = cookieProvider.generateTokenCookie(tokenInfo.getRefreshToken());
+
+		return ResponseEntity.ok()
+				.header(HttpHeaders.SET_COOKIE, responseCookie.toString())
+				.body(tokenInfo);
+	}
 }
