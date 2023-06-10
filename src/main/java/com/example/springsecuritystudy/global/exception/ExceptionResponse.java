@@ -2,6 +2,7 @@ package com.example.springsecuritystudy.global.exception;
 
 import java.time.LocalDateTime;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import lombok.Builder;
@@ -11,7 +12,7 @@ import lombok.Getter;
 @Builder
 public class ExceptionResponse {
     private final LocalDateTime timestamp = LocalDateTime.now();
-    private final int status;
+    private final HttpStatus status;
     private final String error;
     private final String code;
     private final String message;
@@ -20,7 +21,7 @@ public class ExceptionResponse {
         return ResponseEntity
                 .status(exceptionCode.getHttpStatus())
                 .body(ExceptionResponse.builder()
-                        .status(exceptionCode.getHttpStatus().value())
+                        .status(exceptionCode.getHttpStatus())
                         .error(exceptionCode.getHttpStatus().name())
                         .code(exceptionCode.name())
                         .message(exceptionCode.getMessage())

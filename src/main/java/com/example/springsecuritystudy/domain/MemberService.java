@@ -1,20 +1,19 @@
 package com.example.springsecuritystudy.domain;
 
 import static com.example.springsecuritystudy.global.jwt.JwtUtil.getMemberId;
-import static com.example.springsecuritystudy.global.jwt.JwtUtil.isValidAccess;
 
 import java.util.List;
 
 import javax.persistence.EntityNotFoundException;
 
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.springsecuritystudy.global.config.SecurityConfig;
+import com.example.springsecuritystudy.global.exception.custom.InvalidRefreshTokenException;
 import com.example.springsecuritystudy.global.jwt.JwtTokenProvider;
 import com.example.springsecuritystudy.global.jwt.TokenInfo;
+import com.example.springsecuritystudy.global.redis.CacheRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,13 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 public class MemberService {
 
 	// TODO Redis 도입!
+	private static final List<String> userOnlyRoles = List.of("USER");
+	private static final List<String> adminOnlyRoles = List.of("ADMIN");
+	private static final List<String> userAndAdminRoles = List.of("ADMIN", "USER");
 
 	private final MemberRepository memberRepository;
 	private final JwtTokenProvider jwtTokenProvider;
-
-	private final List<String> userOnlyRoles = List.of("USER");
-	private final List<String> adminOnlyRoles = List.of("ADMIN");
-	private final List<String> userAndAdminRoles = List.of("ADMIN", "USER");
+	private final CacheRepository<String> cacheRepository;
 
 	@Transactional
 	public Long registerMember(MemberDto dto){
@@ -56,12 +55,15 @@ public class MemberService {
 	public TokenInfo login(String email, String enteredPassword) {
 		Member member = memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException(""));
 		if (isPasswordMatches(member, enteredPassword)) {
-			return generateToken(member.getId(), enteredPassword);
+			TokenInfo tokenInfo = generateToken(member.getId(), enteredPassword);
+			cacheRepository.save(String.valueOf(member.getId()), tokenInfo.getRefreshToken());
+			return tokenInfo;
 		}
 		return null;
 	}
 
 	public void logout() {
+		cacheRepository.delete(String.valueOf(getMemberId()));
 		SecurityContextHolder.clearContext();
 	}
 
@@ -75,7 +77,17 @@ public class MemberService {
 	@Transactional
 	public TokenInfo reissue(ReissueRequest request, String refreshToken){
 		jwtTokenProvider.validateToken(refreshToken);
-		return jwtTokenProvider.generateToken(request.accessToken());
+		// A.T vs R.T 둘 중에 뭐를 하는게 더 좋을지 고민
+		String memberId = jwtTokenProvider.getMemberIdFromToken(request.accessToken());
+
+		if (!refreshToken.equals(cacheRepository.get(memberId))){
+			throw new InvalidRefreshTokenException(jwtTokenProvider.getMemberIdFromToken(refreshToken));
+		}
+
+		TokenInfo tokenInfo = jwtTokenProvider.generateToken(request.accessToken());
+		cacheRepository.delete(memberId);
+		cacheRepository.save(memberId, tokenInfo.getRefreshToken());
+		return tokenInfo;
 	}
 
 
