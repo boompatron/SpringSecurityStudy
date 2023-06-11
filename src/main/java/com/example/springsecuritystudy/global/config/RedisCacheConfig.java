@@ -18,17 +18,17 @@ public class RedisCacheConfig {
 	public RedisCacheConfiguration redisCacheConfiguration(){
 		return RedisCacheConfiguration.defaultCacheConfig()
 				.entryTtl(Duration.ofSeconds(60)) // 1분간 지속
-				.disableCachingNullValues() // Null 은 value 로 안 받음
-				.serializeKeysWith(
-						RedisSerializationContext.SerializationPair.fromSerializer(
-								new StringRedisSerializer()
-						)
-				)
-				.serializeValuesWith(
-						RedisSerializationContext.SerializationPair.fromSerializer(
-								new GenericJackson2JsonRedisSerializer()
-						)
-				);
+				.disableCachingNullValues(); // Null 은 value 로 안 받음
+				// .serializeKeysWith(
+				// 		RedisSerializationContext.SerializationPair.fromSerializer(
+				// 				new StringRedisSerializer()
+				// 		)
+				// )
+				// .serializeValuesWith(
+				// 		RedisSerializationContext.SerializationPair.fromSerializer(
+				// 				new GenericJackson2JsonRedisSerializer()
+				// 		)
+				// );
 	}
 
 	// @Bean

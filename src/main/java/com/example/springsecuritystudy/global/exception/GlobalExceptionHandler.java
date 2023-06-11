@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler({
 			InvalidRefreshTokenException.class
 	})
-	public ResponseEntity<ExceptionResponse> handleInvalidRefreshTokenException(RuntimeException runtimeException){
+	public ResponseEntity<ExceptionResponse> handleInvalidRefreshTokenException(){
 		return toResponseEntity(ExceptionCode.INVALID_REFRESH_TOKEN);
 	}
 }

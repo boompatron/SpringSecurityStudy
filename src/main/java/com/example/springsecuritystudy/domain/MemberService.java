@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.persistence.EntityNotFoundException;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import com.example.springsecuritystudy.global.exception.custom.InvalidRefreshTok
 import com.example.springsecuritystudy.global.jwt.JwtTokenProvider;
 import com.example.springsecuritystudy.global.jwt.TokenInfo;
 import com.example.springsecuritystudy.global.redis.CacheRepository;
+import com.example.springsecuritystudy.global.redis.RedisTokenTemplate;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,18 +24,20 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class MemberService {
-
-	// TODO Redis 도입!
 	private static final List<String> userOnlyRoles = List.of("USER");
 	private static final List<String> adminOnlyRoles = List.of("ADMIN");
 	private static final List<String> userAndAdminRoles = List.of("ADMIN", "USER");
 
+
 	private final MemberRepository memberRepository;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final CacheRepository<String> cacheRepository;
+	private final CacheRepository<TokenInfo> redisTokenTemplate;
 
 	@Transactional
 	public Long registerMember(MemberDto dto){
+		// 일단은 일반 회원의 가입만 받음
+		// 추가로 어드민 계정을 가진 회원을 가입시키는 추가 메소드 및 도에인 추가 예정
 		Member member = memberRepository.save(
 				Member.builder()
 						.email(dto.email())
@@ -56,14 +60,16 @@ public class MemberService {
 		Member member = memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException(""));
 		if (isPasswordMatches(member, enteredPassword)) {
 			TokenInfo tokenInfo = generateToken(member.getId(), enteredPassword);
-			cacheRepository.save(String.valueOf(member.getId()), tokenInfo.getRefreshToken());
+			cacheRepository.save(toCacheKey(String.valueOf(member.getId())), tokenInfo.getRefreshToken());
+			redisTokenTemplate.save("Token" + member.getId().toString(), tokenInfo);
+			 // tokenInfoCacheRepository.save(toCacheKey(member.getId().toString() + "Token"), tokenInfo);
 			return tokenInfo;
 		}
 		return null;
 	}
 
 	public void logout() {
-		cacheRepository.delete(String.valueOf(getMemberId()));
+		cacheRepository.delete(toCacheKey(String.valueOf(getMemberId())));
 		SecurityContextHolder.clearContext();
 	}
 
@@ -85,9 +91,24 @@ public class MemberService {
 		}
 
 		TokenInfo tokenInfo = jwtTokenProvider.generateToken(request.accessToken());
-		cacheRepository.delete(memberId);
-		cacheRepository.save(memberId, tokenInfo.getRefreshToken());
+		cacheRepository.delete(toCacheKey(memberId));
+		cacheRepository.save(toCacheKey(memberId), tokenInfo.getRefreshToken());
 		return tokenInfo;
+	}
+
+	@Transactional(readOnly = true)
+	public TestDto redisCacheTest(Long id) {
+		System.out.println("Token" + id.toString() + "," + toCacheKey(String.valueOf(id)));
+		TokenInfo tokenInfo = redisTokenTemplate.get("Token" + id);
+		System.out.println(tokenInfo.getAccessToken());
+		System.out.println(tokenInfo.getRefreshToken());
+		String rt = cacheRepository.get(toCacheKey(String.valueOf(id)));
+		TestDto dto = new TestDto(
+				tokenInfo,
+				rt
+		);
+
+		return dto;
 	}
 
 
@@ -99,4 +120,7 @@ public class MemberService {
 		return jwtTokenProvider.generateToken(String.valueOf(memberId), enteredPassword);
 	}
 
+	private String toCacheKey(String memberId){
+		return "RT:" + memberId;
+	}
 }

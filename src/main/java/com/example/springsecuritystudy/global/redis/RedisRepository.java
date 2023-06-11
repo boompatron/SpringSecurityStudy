@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RedisRepository<T> implements CacheRepository<T>{
 
-	private final RedisTemplate<String, T> redisTemplate;
+	protected final RedisTemplate<String, T> redisTemplate;
 
 	@Override
 	public void save(String key, T value) {
@@ -31,7 +31,6 @@ public class RedisRepository<T> implements CacheRepository<T>{
 
 	@Override
 	public void delete(String key) {
-		ValueOperations<String, T> ops = redisTemplate.opsForValue();
 		redisTemplate.delete(key);
 	}
 }
